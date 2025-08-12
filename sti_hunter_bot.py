@@ -58,10 +58,9 @@ def pobierz_ogloszenia_otomoto():
             ads = []
             for article in soup.select('article[data-testid="listing-ad"]'):
                 link = article.select_one('a[data-cy="listing-ad-title"]')['href']
-                title = article.select_one('a[data-cy="listing-ad-title"]').text.lower()
-                if link.startswith('https://www.otomoto.pl/oferta/') and 'sti' in title and link not in sent_ads:
+                if link.startswith('https://www.otomoto.pl/oferta/') and link not in sent_ads:
                     ads.append(link)
-            print(f"Znaleziono {len(ads)} nowych ofert.")
+            print(f"Znaleziono {len(ads)} potencjalnych ofert przed filtrem opisu.")
             return ads
         return []
     except Exception as e:
@@ -79,14 +78,17 @@ def pobierz_detale(url):
             title = soup.select_one('h1.offer-title') or 'Brak tytułu'
             price = soup.select_one('span.offer-price__number') or 'Brak ceny'
             photo = soup.select_one('img.bigImage')['src'] if soup.select_one('img.bigImage') else None
-            return {
-                'title': title.text.strip() if hasattr(title, 'text') else 'Brak tytułu',
-                'price': price.text.strip() if hasattr(price, 'text') else 'Brak ceny',
-                'photo': photo
-            }
+            description = soup.select_one('div.offer-description') or ''
+            if hasattr(description, 'text') and 'wrx sti' in description.text.lower():
+                return {
+                    'title': title.text.strip() if hasattr(title, 'text') else 'Brak tytułu',
+                    'price': price.text.strip() if hasattr(price, 'text') else 'Brak ceny',
+                    'photo': photo
+                }
+            return None
     except Exception as e:
         print(f"Błąd pobierania detali {url}:", e)
-    return {'title': 'Brak detali', 'price': '', 'photo': None}
+    return None
 
 def bot_loop():
     print("Bot loop started")
@@ -97,14 +99,16 @@ def bot_loop():
             otomoto_ads = pobierz_ogloszenia_otomoto()
             for ad in otomoto_ads:
                 if ad not in sent_ads:
-                    sent_ads.add(ad)
                     details = pobierz_detale(ad)
-                    message = f"🚗 Nowe Subaru Impreza WRX STI:\n<b>{details['title']}</b>\nCena: {details['price']}\nLink: {ad}"
-                    print("Wysyłam:", ad)
-                    send_telegram_message(message, photo_url=details['photo'])
-                    # Save sent_ads to file
-                    with open(SENT_FILE, 'w') as f:
-                        json.dump(list(sent_ads), f)
+                    if details:  # Tylko jeśli opis zawiera "wrx sti"
+                        sent_ads.add(ad)
+                        message = f"🚗 Nowe Subaru Impreza WRX STI:\n<b>{details['title']}</b>\nCena: {details['price']}\nLink: {ad}"
+                        print("Wysyłam:", ad)
+                        send_telegram_message(message, photo_url=details['photo'])
+                        # Save sent_ads to file
+                        with open(SENT_FILE, 'w') as f:
+                            json.dump(list(sent_ads), f)
+            print(f"Znaleziono {len(otomoto_ads) - len(sent_ads)} nowych ofert po filtrze opisu.")
             time.sleep(600)  # 10 minutes
         except Exception as e:
             print("Błąd w pętli bota:", e)
