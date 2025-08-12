@@ -5,10 +5,6 @@ import threading
 import requests
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 
 TG_TOKEN = os.getenv("TG_TOKEN")
 TG_CHAT = os.getenv("TG_CHAT")
@@ -59,46 +55,14 @@ def pobierz_ogloszenia_otomoto():
         if r.ok:
             soup = BeautifulSoup(r.text, 'lxml')
             ads = []
-            for a in soup.find_all('a', href=True):
-                href = a['href']
-                if href.startswith('https://www.otomoto.pl/oferta/') and href not in sent_ads:
-                    ads.append(href)
-            return list(set(ads))
+            for article in soup.select('article.offer-item'):
+                link = article.select_one('a.offer-title__link')['href']
+                if link.startswith('https://www.otomoto.pl/oferta/') and link not in sent_ads:
+                    ads.append(link)
+            return ads
         return []
     except Exception as e:
         print("Błąd pobierania Otomoto:", e)
-        return []
-
-def pobierz_ogloszenia_mobilede():
-    url = ("https://suchen.mobile.de/fahrzeuge/search.html?"
-           "makeModelVariant1.makeId=20900&"
-           "makeModelVariant1.modelId=26&"
-           "minFirstRegistrationDate=2004&"
-           "maxFirstRegistrationDate=2012&"
-           "usage=USED&"
-           "powerunit=PETROL&"
-           "transmission=MANUAL&"
-           "priceCurrency=EUR&"
-           "sortOption.sortBy=creationTime&"
-           "sortOption.sortOrder=DESC")
-    try:
-        options = Options()
-        options.add_argument("--headless")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-        driver.get(url)
-        time.sleep(5)  # Wait for JS to load
-        soup = BeautifulSoup(driver.page_source, 'lxml')
-        driver.quit()
-        ads = []
-        for a in soup.find_all('a', href=True):
-            href = a['href']
-            if 'https://suchen.mobile.de/fahrzeuge/details' in href and href not in sent_ads:
-                ads.append(href)
-        return list(set(ads))
-    except Exception as e:
-        print("Błąd pobierania mobile.de:", e)
         return []
 
 def pobierz_detale(url):
@@ -109,34 +73,28 @@ def pobierz_detale(url):
         r = requests.get(url, headers=headers, timeout=15)
         if r.ok:
             soup = BeautifulSoup(r.text, 'lxml')
-            # Adjust selectors based on site (Otomoto or mobile.de)
-            title = soup.find('h1') or soup.find('h2') or 'Brak tytułu'
-            price = soup.find('span', class_='offer-price__number') or soup.find('div', class_='price') or 'Brak ceny'
-            year = soup.find('span', class_='offer-meta__value') or soup.find('div', class_='g-col-6') or 'Brak roku'
-            photo = soup.find('img', class_='bigImage')['src'] if soup.find('img', class_='bigImage') else None
+            title = soup.select_one('h1.offer-title') or 'Brak tytułu'
+            price = soup.select_one('span.offer-price__number') or 'Brak ceny'
+            photo = soup.select_one('img.bigImage')['src'] if soup.select_one('img.bigImage') else None
             return {
                 'title': title.text.strip() if hasattr(title, 'text') else 'Brak tytułu',
                 'price': price.text.strip() if hasattr(price, 'text') else 'Brak ceny',
-                'year': year.text.strip() if hasattr(year, 'text') else 'Brak roku',
                 'photo': photo
             }
     except Exception as e:
         print(f"Błąd pobierania detali {url}:", e)
-    return {'title': 'Brak detali', 'price': '', 'year': '', 'photo': None}
+    return {'title': 'Brak detali', 'price': '', 'photo': None}
 
 def bot_loop():
     print("Bot loop started")
     while True:
         try:
             otomoto_ads = pobierz_ogloszenia_otomoto()
-            mobilede_ads = pobierz_ogloszenia_mobilede()
-            new_ads = otomoto_ads + mobilede_ads
-
-            for ad in new_ads:
+            for ad in otomoto_ads:
                 if ad not in sent_ads:
                     sent_ads.add(ad)
                     details = pobierz_detale(ad)
-                    message = f"🚗 Nowe Subaru WRX STI:\n<b>{details['title']}</b>\nCena: {details['price']}\nRok: {details['year']}\nLink: {ad}"
+                    message = f"🚗 Nowe Subaru Impreza WRX STI:\n<b>{details['title']}</b>\nCena: {details['price']}\nLink: {ad}"
                     print("Wysyłam:", ad)
                     send_telegram_message(message, photo_url=details['photo'])
                     # Save sent_ads to file
