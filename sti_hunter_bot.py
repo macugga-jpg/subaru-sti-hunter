@@ -5,6 +5,12 @@ import re
 import threading
 import requests
 from http.server import HTTPServer, BaseHTTPRequestHandler
+import json
+from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 
 TG_TOKEN = os.getenv("TG_TOKEN")
 TG_CHAT = os.getenv("TG_CHAT")
@@ -33,13 +39,8 @@ def send_telegram_message(text, photo_url=None):
         return False
 
 def pobierz_ogloszenia_otomoto():
-    url = ("https://www.otomoto.pl/osobowe/subaru/impreza/sti/?"
-           "search%5Bfilter_enum_generation%5D%5B0%5D=blobeye&"
-           "search%5Bfilter_enum_generation%5D%5B1%5D=hawkeye&"
-           "search%5Bfilter_enum_generation%5D%5B2%5D=gr&"
-           "search%5Bfilter_enum_generation%5D%5B3%5D=gv&"
-           "search%5Bfilter_enum_type%5D=limitowana-edition&"
-           "search%5Border%5D=created_at_first%3Adesc")
+    url = "https://www.otomoto.pl/osobowe/subaru
+           
     headers = {"User-Agent": "Mozilla/5.0"}
     try:
         r = requests.get(url, headers=headers, timeout=15)
