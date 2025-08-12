@@ -41,10 +41,7 @@ def send_telegram_message(text, photo_url=None):
         return False
 
 def pobierz_ogloszenia_otomoto():
-    url = ("https://www.otomoto.pl/osobowe/subaru/impreza/?"
-           "search%5Bfilter_float_year%3Afrom%5D=2004&"
-           "search%5Bfilter_float_year%3Ato%5D=2012&"
-           "search%5Border%5D=created_at_first%3Adesc")
+    url = "https://www.otomoto.pl/osobowe/subaru/impreza?search%5Border%5D=relevance_web"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
@@ -85,7 +82,7 @@ def pobierz_detale(url):
             if hasattr(description, 'text'):
                 desc_text = description.text.lower()
                 print(f"Debug opisu dla {url}: {desc_text[:200]}...")  # Log pierwszych 200 znaków opisu
-                if 'wrx sti' in desc_text:
+                if 'sti' in desc_text:
                     return {
                         'title': title.text.strip() if hasattr(title, 'text') else 'Brak tytułu',
                         'price': price.text.strip() if hasattr(price, 'text') else 'Brak ceny',
@@ -106,7 +103,7 @@ def bot_loop():
             for ad in otomoto_ads:
                 if ad not in sent_ads:
                     details = pobierz_detale(ad)
-                    if details:  # Tylko jeśli opis zawiera "wrx sti"
+                    if details:  # Tylko jeśli opis zawiera "sti"
                         sent_ads.add(ad)
                         message = f"🚗 Nowe Subaru Impreza WRX STI:\n<b>{details['title']}</b>\nCena: {details['price']}\nLink: {ad}"
                         print("Wysyłam:", ad)
