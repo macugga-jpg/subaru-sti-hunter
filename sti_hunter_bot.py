@@ -78,13 +78,19 @@ def pobierz_detale(url):
             title = soup.select_one('h1.offer-title') or 'Brak tytułu'
             price = soup.select_one('span.offer-price__number') or 'Brak ceny'
             photo = soup.select_one('img.bigImage')['src'] if soup.select_one('img.bigImage') else None
-            description = soup.select_one('div.offer-description') or ''
-            if hasattr(description, 'text') and 'wrx sti' in description.text.lower():
-                return {
-                    'title': title.text.strip() if hasattr(title, 'text') else 'Brak tytułu',
-                    'price': price.text.strip() if hasattr(price, 'text') else 'Brak ceny',
-                    'photo': photo
-                }
+            # Sprawdzamy różne możliwe selektory opisu
+            description = (soup.select_one('div.offer-description') or
+                          soup.select_one('p.description') or
+                          soup.select_one('section.offer-content') or '')
+            if hasattr(description, 'text'):
+                desc_text = description.text.lower()
+                print(f"Debug opisu dla {url}: {desc_text[:200]}...")  # Log pierwszych 200 znaków opisu
+                if 'wrx sti' in desc_text:
+                    return {
+                        'title': title.text.strip() if hasattr(title, 'text') else 'Brak tytułu',
+                        'price': price.text.strip() if hasattr(price, 'text') else 'Brak ceny',
+                        'photo': photo
+                    }
             return None
     except Exception as e:
         print(f"Błąd pobierania detali {url}:", e)
