@@ -41,7 +41,7 @@ def send_telegram_message(text, photo_url=None):
         return False
 
 def pobierz_ogloszenia_otomoto():
-    url = ("https://www.otomoto.pl/osobowe/subaru/impreza/sti/?"
+    url = ("https://www.otomoto.pl/osobowe/subaru/impreza/?"
            "search%5Bfilter_float_year%3Afrom%5D=2004&"
            "search%5Bfilter_float_year%3Ato%5D=2012&"
            "search%5Border%5D=created_at_first%3Adesc")
@@ -58,7 +58,8 @@ def pobierz_ogloszenia_otomoto():
             ads = []
             for article in soup.select('article[data-testid="listing-ad"]'):
                 link = article.select_one('a[data-cy="listing-ad-title"]')['href']
-                if link.startswith('https://www.otomoto.pl/oferta/') and link not in sent_ads:
+                title = article.select_one('a[data-cy="listing-ad-title"]').text.lower()
+                if link.startswith('https://www.otomoto.pl/oferta/') and 'sti' in title and link not in sent_ads:
                     ads.append(link)
             print(f"Znaleziono {len(ads)} nowych ofert.")
             return ads
