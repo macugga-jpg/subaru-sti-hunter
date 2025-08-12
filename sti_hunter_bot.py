@@ -87,6 +87,8 @@ def pobierz_detale(url):
 
 def bot_loop():
     print("Bot loop started")
+    # Send test message to confirm Telegram connection
+    send_telegram_message("Hej już działam!")
     while True:
         try:
             otomoto_ads = pobierz_ogloszenia_otomoto()
