@@ -52,13 +52,15 @@ def pobierz_ogloszenia_otomoto():
     }
     try:
         r = requests.get(url, headers=headers, timeout=15)
+        print(f"Odpowiedź z Otomoto: status {r.status_code}, długość treści: {len(r.text)}")
         if r.ok:
             soup = BeautifulSoup(r.text, 'lxml')
             ads = []
-            for article in soup.select('article.offer-item'):
-                link = article.select_one('a.offer-title__link')['href']
+            for article in soup.select('article[data-testid="listing-ad"]'):
+                link = article.select_one('a[data-cy="listing-ad-title"]')['href']
                 if link.startswith('https://www.otomoto.pl/oferta/') and link not in sent_ads:
                     ads.append(link)
+            print(f"Znaleziono {len(ads)} nowych ofert.")
             return ads
         return []
     except Exception as e:
