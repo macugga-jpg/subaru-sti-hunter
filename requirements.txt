@@ -1,5 +1,1 @@
-requests
-beautifulsoup4
-lxml  # Parser dla BeautifulSoup
-selenium
-webdriver-manager  # Automatycznie instaluje chromedriver
+requests beautifulsoup4 lxml
